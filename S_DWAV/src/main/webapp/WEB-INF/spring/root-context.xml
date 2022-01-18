@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+       
+        <!-- FileUpload! -->
+        <bean id="multipartResolver" class = "org.springframework.web.multipart.commons.CommonsMultipartResolver">
+            <property name= "defaultEncoding" value = "UTF-8"/>
+            <!-- 50*1024*1024 최대 파일 용량
+            maxUploadSize 최대 업로드 가능한 바이트 크기. -1의 경우 제한이 없다. 기본값은 -1
+            defaultEncoding 요청을 파싱할 때 ~~~~ 소스 참고 -->
+            <property name= "maxUploadSize" value = "52428800"/>
+            <!-- 임시파일을 메모리에 보관하는데, 이 최대 크기 값 -->
+            <property name= "maxInMemorySize" value = "52428800"/>
+            
+        </bean>
+       
+       
+        <!-- mybatis설정:db -->
+        <bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
+          <constructor-arg index="0" ref="sqlSessionFactoryBean"/>
+        </bean>
+    
+        <!-- mybatis환경설정 read -->
+        <bean id="sqlSessionFactoryBean" class="org.mybatis.spring.SqlSessionFactoryBean">
+          <property name="configLocation" value="classpath:mybatis-config.xml"/>
+          <property name="mapperLocations" value="classpath:mapper/**/*.xml"></property>
+          <property name="dataSource" ref="dataSource"/>
+        </bean>
+    
+        <!-- tx namespace를 사용하는 트랜잭션 -->
+        <!-- 트랜잭션 Advice -->
+        <tx:advice id="txAdvice" transaction-manager="transactionManager">
+            <tx:attributes>
+                <!-- do으로 시작하는 모든 메소드는 read-only="true" 트랜잭션관리 대상에서 제외 -->
+                <tx:method name="do*" read-only="true"/>
+                <!-- up으로 시작하는 모든 메소드는 read-only="false" 트랜잭션관리 대상 -->
+                <tx:method name="up*" read-only="false"/>
+            </tx:attributes>
+       
+        </tx:advice>
+        
+        <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+           <property name="dataSource" ref="dataSource"></property>
+        </bean>
+
+        <aop:config>
+            <aop:pointcut expression="execution(* com.pcwk.ehr..service.*Impl.*(..))" id="txPointCut"/>
+            <aop:advisor advice-ref="txAdvice" pointcut-ref="txPointCut"/>
+        </aop:config>
+        
+        
+
+        <!-- dev용 MailSender -->
+        <!-- <bean id="mailSender" class="com.pcwk.ehr.cmn.DummyMailSender"/> -->
+        <!-- Naver smtp                                           
+        JavaMailSenderImpl    -->                                               
+         
+
+         <bean id="mailSenderImpl" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+            <property name="host" value="smtp.naver.com" />
+            <property name="port" value="465" />
+            <property name="username" value="jamesol@naver.com" />
+            <property name="password" value="비번" />
+            <property name="defaultEncoding" value="utf-8" />
+            <property name="javaMailProperties">
+                <props>
+                    <prop key="mail.smtp.host">smtp.naver.com</prop>
+                    <prop key="mail.smtp.port">465</prop>
+                    <prop key="mail.smtp.auth">true</prop>
+                    <prop key="mail.smtp.ssl.protocols">TLSv1.2</prop>
+                    <prop key="mail.smtp.ssl.enable">true</prop>
+                    <prop key="mail.smtp.ssl.trust">smtp.naver.com</prop>
+                    <prop key="mail.debug">true</prop>
+                </props>
+            </property>
+        </bean>
+
+        <!-- jta -->
+        <!-- <bean id="transactionManager" class="org.springframework.transaction.jta.JtaTransactionManager"></bean> -->
+        <!-- properties파일 read -->
+        <context:property-placeholder location="classpath:/resource/config/database.properties"/>
+        <!--SimpleDriverDataSource to  BasicDataSource -->
+        <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+           <property name="driverClassName" value="${jdbc.driverClass}"/>
+           <property name="url"             value="${jdbc.url}"/>
+           <property name="username"        value="${jdbc.username}"/>
+           <property name="password"        value="${jdbc.password}"/>
+           
+           <!-- 최대 접속 허용 갯수 -->
+           <property name="maxActive"       value="${jdbc.maxActive}"/>
+           <!-- 여분으로 남겨질 Connection -->
+           <property name="maxIdle"         value="${jdbc.maxIdle}"/>
+           <!-- DB연결 대기 시간 -->
+           <property name="maxWait"         value="${jdbc.maxWait}" />
+           <!-- Connection 잘못 관리되어 버려진 연결 찾아 재활용 -->
+           <property name="removeAbandoned" value="${jdbc.removeAbandoned}"/>
+           <!-- 버려진 연결로 인식할 기본 시간 -->
+           <property name="removeAbandonedTimeout" value="${jdbc.removeAbandonedTimeout}"/>
+        </bean>
+        
+</beans>
