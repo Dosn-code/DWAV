@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pcwk.ehr.member">
+    <!-- 이 안에 CRUD 쿼리 집어넣고, dao에서 여기를 call하면 된다! -->
+
+    <!-- 전체 조회 -->
+    <select id="getAll" resultType="UserVO">
+        SELECT
+            user_id AS userId,
+            user_pwd AS passwd,
+            first_name As firstNm,
+            last_name AS lastNm,
+            TO_CHAR(birth_date,'yyyy/mm/dd') AS birthDate,
+            email AS eMail,
+            user_ph_num AS phoneNum,
+            user_img AS userImg,
+            user_intro AS userIntro,
+            TO_CHAR(join_date,'yyyy/mm/dd hh24:mi:ss') AS joinDate,
+            make_host AS makeHost
+        FROM member
+        ORDER BY joinDate
+    </select>
+
+
+      <!-- 수정 -->
+    <update id="doUpdate" parameterType="UserVO">
+        UPDATE member
+        SET         
+             user_pwd       = #{passwd}
+            ,first_name     = #{firstNm}
+            ,last_name      = #{lastNm}
+            ,birth_date     = #{birthDate}
+            ,email          = #{eMail}
+            ,user_ph_num    = #{phoneNum}
+            ,user_img       = #{userImg}
+            ,user_intro     = #{userIntro}
+            ,join_date      = #{joinDate}
+            ,make_host      = #{makeHost}
+        WHERE user_id = #{userId} 
+    </update>
+
+
+    
+    <!-- 총 회원 수 namespace+id --> 
+    <select id="getCount" resultType="int">
+        SELECT COUNT(*) cnt
+        FROM member
+    </select>
+
+
+
+    <!-- 회원 가입 : namespace+id -> -->
+    <insert id="doInsert" parameterType="UserVO">
+      INSERT INTO member(            
+            user_id,
+            user_pwd,
+            first_name,
+            last_name,
+            birth_date,
+            email,
+            user_ph_num,
+            user_img,
+            user_intro,
+            join_date,
+            make_host
+    ) VALUES (
+            #{userId),
+            #{passwd},   
+            #{firstNm},   
+            #{lastNm},    
+            #{birthDate}, 
+            #{eMail},     
+            #{phoneNum},  
+            #{userImg},   
+            #{userIntro}, 
+            sysdate,  
+            #{makeHost}
+            
+    )
+
+
+    </insert>
+
+
+
+    <!-- 전체 삭제 -->
+    <delete id="deleteAll">
+        DELETE FROM member
+    </delete>
+
+    <!-- 회원 탈퇴(단건 삭제): deleteAll에서 where절 붙이기 스프링에서는 이렇게 호출한다. -->
+    <delete id="doDelete" parameterType="UserVO">
+        DELETE FROM member
+        WHERE
+        user_id = #{userId}
+    </delete>
+
+
+    <!-- 단건 조회 -->
+    <select id="doSelectOne" parameterType="UserVO"
+        resultMap="userResultMap">
+
+    <![CDATA[ 
+        SELECT
+            user_id AS userId,
+            user_pwd AS passwd,
+            first_name As firstNm,
+            last_name AS lastNm,
+            TO_CHAR(birth_date,'yyyy/mm/dd') AS birthDate,
+            email AS eMail,
+            user_ph_num AS phoneNum,
+            user_img AS userImg,
+            user_intro AS userIntro,
+            TO_CHAR(join_date,'yyyy/mm/dd hh24:mi:ss') AS joinDate
+            make_host AS makeHost
+        FROM member
+        WHERE user_id = #{userId} ]]>
+    </select>
+
+
+    <resultMap type="UserVO" id="userResultMap">
+        <id property="userId" column="user_id" />
+        <result property="passwd" column="user_pwd" />
+        <result property="firstNm" column="first_name" />
+        <result property="lastNm" column="last_name" />
+        <result property="birthDate" column="birth_date" />
+        <result property="eMail" column="email" />
+        <result property="phoneNum" column="user_ph_num" />
+        <result property="userImg" column="user_img" />
+        <result property="userIntro" column="user_intro" />
+        <result property="joinDate" column="join_date" />
+    </resultMap>
+
+    <sql id="searchCondition">
+        <!-- WHERE엘리멘트는 태그에 의해 컨텐츠가 리턴되면 단순히 "WHERE"만을 추가한다. 게다가 AND, OR로 시작하면 
+            AND나 OR을 지워버린다. -->
+        <!-- user_id,user_pwd, first_name,last_name,birth_date,email,user_ph_num,user_img,user_intro,join_date -->
+        <where>
+            <choose>
+            <when test=" '10' == searchDiv and '' != searchWord ">
+                    user_id LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '20' == searchDiv and '' != searchWord  ">
+                    user_pwd LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '30' == searchDiv and '' != searchWord  ">
+                    first_name LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '40' == searchDiv and '' != searchWord  ">
+                    last_name LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '50' == searchDiv and '' != searchWord  ">
+                    birth_date LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '60' == searchDiv and '' != searchWord  ">
+                    email LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '70' == searchDiv and '' != searchWord  ">
+                    user_ph_num LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '80' == searchDiv and '' != searchWord  ">
+                    user_img LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '90' == searchDiv and '' != searchWord  ">
+                    user_intro LIKE #{searchWord}||'%'
+                </when>
+            <when test=" '100' == searchDiv and '' != searchWord  ">
+                    join_date LIKE #{searchWord}||'%'
+                </when>
+            </choose>
+        </where>
+    </sql>
+
+    <select id="doRetrieveUser" parameterType="SearchVO"
+        resultType="UserVO">
+        SELECT A.*, B.*
+        FROM(
+          SELECT tt1.rnum AS num,
+                 tt1.user_id AS userId,
+                 tt1.user_pwd AS passwd, 
+                 tt1.first_name AS firstNm,
+                 tt1.last_name AS lastNm,
+                 TO_CHAR(tt1.birth_date,'yyyy/mm/dd') AS birthDate,
+                 tt1.email AS eMail,
+                 tt1.user_ph_num AS phoneNum,
+                 tt1.user_img AS userImg,
+                 tt1.user_intro AS userIntro,
+                 DECODE(TO_CHAR(SYSDATE,'YYYYMMDD'),TO_CHAR(tt1.reg_dt,'YYYYMMDD')
+                       ,TO_CHAR(tt1.join_date, 'HH24:MI')
+                       ,TO_CHAR(tt1.join_date,'YYYY/MM/DD HH24:MI:SS')) joinDate,
+                tt1.make_host AS makeHost                 
+          FROM(
+            SELECT ROWNUM rnum,t1.*
+            FROM (
+                SELECT *
+                FROM member
+                --where 조건
+                <include refid="searchCondition" />
+                ORDER BY joinDate desc
+            )t1
+          )tt1
+          --WHERE rnum between 1 AND 10
+          WHERE rnum between (#{pageSize}* (#{pageNum}-1)+1) AND #{pageSize}*(#{pageNum}-1)+#{pageSize}
+        )A
+        CROSS JOIN
+        (
+          SELECT COUNT(*) totalcnt
+          FROM member
+          --WHERE조건
+          <include refid="searchCondition" />
+        )B
+    </select>
+
+</mapper>
